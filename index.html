@@ -1,0 +1,154 @@
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Email Tracking Dashboard</title>
+      <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+      <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+      <style>
+        .log-entry {
+          border-left: 4px solid #007bff;
+          margin-bottom: 10px;
+          padding: 10px;
+          background-color: #f8f9fa;
+        }
+        .success { border-left-color: #28a745; }
+        .error { border-left-color: #dc3545; }
+        .info { border-left-color: #17a2b8; }
+      </style>
+    </head>
+    <body>
+      <div class="container mt-4">
+        <h1>Email Tracking Dashboard</h1>
+        
+        <div class="row mt-4">
+          <div class="col-md-6">
+            <div class="card">
+              <div class="card-header">
+                Search Email Logs
+              </div>
+              <div class="card-body">
+                <div class="input-group mb-3">
+                  <input type="email" id="emailSearch" class="form-control" placeholder="Enter email address">
+                  <button class="btn btn-primary" onclick="searchLogs()">Search</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="col-md-6">
+            <div class="card">
+              <div class="card-header">
+                Statistics
+              </div>
+              <div class="card-body">
+                <canvas id="statsChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row mt-4">
+          <div class="col-12">
+            <div class="card">
+              <div class="card-header">
+                Email Logs
+              </div>
+              <div class="card-body" id="logsContainer">
+                <!-- Logs will be inserted here -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <script>
+        let chart;
+
+        async function searchLogs() {
+          const email = document.getElementById('emailSearch').value;
+          const response = await fetch('/api/email-logs?email=${email}');
+          const logs = await response.json();
+          
+          displayLogs(logs);
+          updateChart(logs);
+        }
+
+        function displayLogs(logs) {
+          const container = document.getElementById('logsContainer');
+          container.innerHTML = '';
+
+          logs.forEach(log => {
+            const logClass = getLogClass(log.eventType);
+            const timestamp = new Date(log.timestamp).toLocaleString();
+            
+            container.innerHTML += `
+              <div class="log-entry \${logClass}">
+                <strong>\${timestamp}</strong><br>
+                <strong>Event:</strong> \${formatEventType(log.eventType)}<br>
+                ${formatLogDetails(log)}
+              </div>
+            `;
+          });
+        }
+
+        function getLogClass(eventType) {
+          if (eventType.includes('error') || eventType.includes('failed')) return 'error';
+          if (eventType.includes('sent') || eventType.includes('received')) return 'success';
+          return 'info';
+        }
+
+        function formatEventType(eventType) {
+          return eventType.split('_').map(word => 
+            word.charAt(0).toUpperCase() + word.slice(1)
+          ).join(' ');
+        }
+
+        function formatLogDetails(log) {
+          let details = [];
+          
+          if (log.recipient) details.push(`To: ${log.recipient}`)
+          if (log.from) details.push(`From: ${log.from}`)
+          if (log.subject) details.push(`Subject: ${log.subject}`)
+          if (log.status) details.push(`Status: ${log.status}`)
+          if (log.error) details.push(`Error: ${log.error}`)
+          if (log.reason) details.push(`Reason: ${log.reason}`);
+          
+          return details.join('<br>');
+        }
+
+        function updateChart(logs) {
+          const stats = {
+            sent: 0,
+            received: 0,
+            error: 0,
+            other: 0
+          };
+
+          logs.forEach(log => {
+            if (log.eventType.includes('sent')) stats.sent++;
+            else if (log.eventType.includes('received')) stats.received++;
+            else if (log.eventType.includes('error') || log.eventType.includes('failed')) stats.error++;
+            else stats.other++;
+          });
+
+          if (chart) chart.destroy();
+          
+          const ctx = document.getElementById('statsChart').getContext('2d');
+          chart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+              labels: ['Sent', 'Received', 'Errors', 'Other'],
+              datasets: [{
+                data: [stats.sent, stats.received, stats.error, stats.other],
+                backgroundColor: ['#28a745', '#007bff', '#dc3545', '#6c757d']
+              }]
+            },
+            options: {
+              responsive: true
+            }
+          });
+        }
+      </script>
+    </body>
+    </html>
+  
