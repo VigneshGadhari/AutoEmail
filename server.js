@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express = require('express');
 const emailService = require('./emailService');
 const emailDashboard = require('./emailDashboard');
@@ -10,7 +12,8 @@ app.use(express.json());
 
 (async () => {
     await initialize();
-    await emailService.setupGmailPushNotifications("projects/optimal-cabinet-449811-s9/topics/EmailTesting");
+    const topicName = `projects/${process.env.GOOGLE_CLOUD_PROJECT_ID}/topics/${process.env.PUBSUB_TOPIC_NAME}`;
+    await emailService.setupGmailPushNotifications(topicName);
 })();
 
 // Endpoint to send an email

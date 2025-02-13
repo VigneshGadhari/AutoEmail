@@ -24,7 +24,8 @@
     "ioredis": "^5.5.0",
     "node-cron": "^3.0.3",
     "nodemailer": "^6.10.0",
-    "temptestingweb": "file:"
+    "temptestingweb": "file:",
+    "dotenv": "^16.0.3"
   },
   "devDependencies": {
     "nodemon": "^3.1.9"

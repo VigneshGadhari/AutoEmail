@@ -5,11 +5,11 @@ const { Queue, Worker } = require('bullmq');
 const Redis = require('ioredis');
 const cron = require('node-cron');
 
-// These id's and secrets should come from .env file.
-const CLIENT_ID = '509700137505-m7vl6dslai8m38g9pg9qnvlj2m9s4v1m.apps.googleusercontent.com';
-const CLEINT_SECRET = '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';
-const REDIRECT_URI = 'https://developers.google.com/oauthplayground';
-const REFRESH_TOKEN = '1//043oz5fr0ZYIxCgYIARAAGAQSNwF-L9Irv5MvIsmLOMl0TBHI0KiP9ROYIv0_eGJFE0dbwj0AcXHJb-_xkiqBNZSH2W1k3XHxr_g';
+// Replace the hardcoded credentials section with:
+const CLIENT_ID = process.env.GMAIL_CLIENT_ID;
+const CLEINT_SECRET = process.env.GMAIL_CLIENT_SECRET;
+const REDIRECT_URI = process.env.GMAIL_REDIRECT_URI;
+const REFRESH_TOKEN = process.env.GMAIL_REFRESH_TOKEN;
 
 const oAuth2Client = new google.auth.OAuth2(
   CLIENT_ID,
@@ -22,8 +22,8 @@ oAuth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
 const esClient = new Client({
   node: process.env.ELASTICSEARCH_URL || 'http://localhost:9200',
   auth: {
-    username: 'elastic', // Replace with your Elasticsearch username
-    password: '123456'    // Replace with your Elasticsearch password
+    username: process.env.ELASTICSEARCH_USERNAME,
+    password: process.env.ELASTICSEARCH_PASSWORD
   }
 });
 
@@ -99,16 +99,16 @@ async function sendMail(email) {
       service: 'gmail',
       auth: {
         type: 'OAuth2',
-        user: 'vigneshgameryt@gmail.com',
-        clientId: CLIENT_ID,
-        clientSecret: CLEINT_SECRET,
-        refreshToken: REFRESH_TOKEN,
+        user: process.env.GMAIL_USER,
+        clientId: process.env.GMAIL_CLIENT_ID,
+        clientSecret: process.env.GMAIL_CLIENT_SECRET,
+        refreshToken: process.env.GMAIL_REFRESH_TOKEN,
         accessToken: accessToken,
       },
     });
 
     const mailOptions = {
-      from: 'vigneshgameryt@gmail.com',
+      from: process.env.GMAIL_USER,
       to: email,
       subject: 'Hello from gmail using API',
       text: 'Hello from gmail email using API',
@@ -400,10 +400,12 @@ async function getEmailLogs(email) {
 async function renewGmailWatch() {
     try {
         const gmail = google.gmail({ version: 'v1', auth: oAuth2Client });
+        const topicName = `projects/${process.env.GOOGLE_CLOUD_PROJECT_ID}/topics/${process.env.PUBSUB_TOPIC_NAME}`;
+        
         const response = await gmail.users.watch({
             userId: 'me',
             requestBody: {
-                topicName:"projects/optimal-cabinet-449811-s9/topics/EmailTesting", // Your Cloud Pub/Sub topic name
+                topicName: topicName,
                 labelIds: ['INBOX'],
                 labelFilterBehavior: 'INCLUDE'
             }
